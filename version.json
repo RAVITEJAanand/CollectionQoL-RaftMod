@@ -1,0 +1,7 @@
+{
+  "version": "1.0.0",
+  "name": "Collection QoL",
+  "downloadUrl": "https://github.com/RAVITEJAanand/CollectionQoL-RaftMod/releases",
+  "raftModdingUrl": "https://raftmodding.com/",
+  "notes": "v1.0.0: Initial release. Auto Empty Nets, Hook Speed & Accuracy Boost, Magnetic Collector, Item Detector Scan, Resource Priority Presets, Floating Loot Tracker radar, Loot Glow, Barrel Target Assist, and Underwater Loot Assist. Sibling-aware defaults when Sailor's Companion is also installed."
+}

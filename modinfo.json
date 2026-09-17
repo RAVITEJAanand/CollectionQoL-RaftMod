@@ -1,0 +1,11 @@
+{
+  "modid": "CollectionQoL",
+  "name": "Collection QoL",
+  "author": "KONDURI (RAVITEJAanand)",
+  "version": "1.0.0",
+  "description": "Loot, nets, and detection Quality-of-Life suite for Raft: Auto Empty Nets, Hook Speed & Accuracy Boost, Magnetic Collector, Item Detector Scan, Resource Priority Presets, Floating Loot Tracker radar, Loot Glow, Barrel Target Assist, and Underwater Loot Assist.",
+  "targetVersion": "1.09",
+  "gameVersion": "1.09 / Update 13.01",
+  "isModPermanent": false,
+  "license": "MIT"
+}
