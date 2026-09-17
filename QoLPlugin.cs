@@ -14,7 +14,7 @@ public class QoLPlugin : BaseUnityPlugin
 {
     public const string GUID    = "com.antigravity.collectionqol";  // matches the sibling mods; never change after release
     public const string NAME    = "Collection QoL";
-    public const string VERSION = "1.0.0";
+    public const string VERSION = "1.0.1";
 
     public static ManualLogSource Log;
 

@@ -1,7 +1,7 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "name": "Collection QoL",
   "downloadUrl": "https://github.com/RAVITEJAanand/CollectionQoL-RaftMod/releases",
   "raftModdingUrl": "https://raftmodding.com/",
-  "notes": "v1.0.0: Initial release. Auto Empty Nets, Hook Speed & Accuracy Boost, Magnetic Collector, Item Detector Scan, Resource Priority Presets, Floating Loot Tracker radar, Loot Glow, Barrel Target Assist, and Underwater Loot Assist. Sibling-aware defaults when Sailor's Companion is also installed."
+  "notes": "v1.0.1: Fixed the settings menu being unusable with the mouse when running Collection QoL standalone (without any of the other three mods installed) - added the same Harmony cursor-unlock/camera-freeze patch the sibling mods each ship, so nothing fights the cursor while the menu is open."
 }
