@@ -1,6 +1,7 @@
 using System;
 using BepInEx;
 using BepInEx.Logging;
+using HarmonyLib;
 using UnityEngine;
 
 // ============================================================================
@@ -32,6 +33,18 @@ public class QoLPlugin : BaseUnityPlugin
     {
         Log = Logger;
         QoLConfigBinder.Bind(Config);
+
+        // Cursor/camera-freeze patch (Patches/CursorPatch.cs): without it, Collection QoL's own
+        // menu is unusable with the mouse when run standalone (nothing else stops Raft from
+        // re-locking the cursor and spinning the camera while the menu is open).
+        try
+        {
+            new Harmony(GUID).PatchAll();
+        }
+        catch (Exception e)
+        {
+            Log.LogError("Failed to apply Harmony patches: " + e);
+        }
 
         features = new Feature[]
         {

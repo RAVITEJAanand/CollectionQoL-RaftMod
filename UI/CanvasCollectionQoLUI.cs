@@ -22,11 +22,12 @@ namespace CollectionQoL.UI
     //          ConfigurationManager would, and QoLConfig's static fields stay in sync via the
     //          existing cfg.SettingChanged -> ApplyAll() pipeline already in QoLConfigBinder.
     //
-    //          Collection QoL has no Harmony cursor-patch layer like the other 3 mods -
-    //          QoLContext.MenuOpen is derived directly from Cursor.visible (see QoLPlugin.cs
-    //          Update()), so Open()/Close() only need to set Cursor.visible/lockState; that
-    //          alone makes MenuOpen true/false and correctly suppresses this mod's hotkeys and
-    //          OnGUI HUD while the menu is open.
+    //          Patches/CursorPatch.cs (Harmony) freezes MouseLook and force-frees the cursor
+    //          while this menu - or any sibling's - is open, same as the other 3 mods, so the
+    //          menu is fully mouse-usable standalone. QoLContext.MenuOpen is derived directly
+    //          from Cursor.visible (see QoLPlugin.cs Update()), so Open()/Close() only need to
+    //          set Cursor.visible/lockState; that alone makes MenuOpen true/false and correctly
+    //          suppresses this mod's hotkeys and OnGUI HUD while the menu is open.
     // ============================================================================
     public class CanvasCollectionQoLUI : MonoBehaviour
     {
