@@ -25,7 +25,7 @@ namespace CollectionQoL.UI
     //          Patches/CursorPatch.cs (Harmony) freezes MouseLook and force-frees the cursor
     //          while this menu - or any sibling's - is open, same as the other 3 mods, so the
     //          menu is fully mouse-usable standalone. QoLContext.MenuOpen is derived directly
-    //          from Cursor.visible (see QoLPlugin.cs Update()), so Open()/Close() only need to
+    //          from Cursor.visible (see QoLRunner.cs Update()), so Open()/Close() only need to
     //          set Cursor.visible/lockState; that alone makes MenuOpen true/false and correctly
     //          suppresses this mod's hotkeys and OnGUI HUD while the menu is open.
     // ============================================================================
@@ -184,7 +184,7 @@ namespace CollectionQoL.UI
             // Raft re-asserts cursor state every frame, so setting Cursor.visible on its own gets
             // overwritten and the pointer vanishes mid-click. Helper.SetCursorVisibleAndLockState
             // is the call the game itself honours. QoLContext.MenuOpen still derives from
-            // Cursor.visible (QoLPlugin.cs Update()), so hotkey suppression keeps working.
+            // Cursor.visible (QoLRunner.cs Update()), so hotkey suppression keeps working.
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
             try { Helper.SetCursorVisibleAndLockState(true, CursorLockMode.None); }
@@ -415,7 +415,9 @@ namespace CollectionQoL.UI
                 _canvas = _canvasGO.AddComponent<Canvas>();
                 _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
                 _canvas.overrideSorting = true;
-                _canvas.sortingOrder = 33000; // top-most, matches the sibling mods' menu layer
+                // Canvas sorting order is a 16-bit value (max 32767). 33000 wrapped to a large negative
+                // number, which put the menu UNDER Raft's own UI so the game's canvases ate every click.
+                _canvas.sortingOrder = 32700; // top-most, matches the sibling mods' menu layer
 
                 _scaler = _canvasGO.AddComponent<CanvasScaler>();
                 _scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
