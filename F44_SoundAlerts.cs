@@ -1,20 +1,46 @@
 using System.Collections.Generic;
+using FMOD.Studio;
+using FMODUnity;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 // ============================================================================
 //  44  COLLECTION SOUND ALERTS
-//  Procedurally generated tones (no audio files). Alerts for: valuable loot
-//  entering range, nets becoming full, magnet/scan/collect feedback.
-//  Also owns the small on-screen "toast" message used by other features.
+//  Plays the game's own FMOD sound events (no audio files). Alerts for:
+//  valuable loot entering range, nets becoming full, magnet/scan/collect
+//  feedback. Also owns the small on-screen "toast" message used by other features.
+//  Raft plays all its audio through FMOD with Unity's built-in audio disabled,
+//  so Unity AudioClips/AudioSources stay silent there (every generated tone
+//  logged "AudioClip.SetData failed; AudioClip contains no data").
 // ============================================================================
 public static class F44_SoundAlerts
 {
     public enum Tone { Click, Collect, Start, Scan, Rare, NetFull }
 
-    static GameObject host;
-    static AudioSource source;
-    static readonly Dictionary<Tone, AudioClip> clips = new Dictionary<Tone, AudioClip>();
+    struct Sound
+    {
+        public string Path;
+        public float Gain;
+        public Sound(string path, float peakDb) { Path = path; Gain = Mathf.Pow(10f, -peakDb / 20f); }
+    }
+
+    // Paths from Raft's MasterBank.strings.bank; all are one-shots (none loop). The second value is
+    // the event's measured peak level: the game mixes its sounds with a lot of headroom, so each one
+    // is lifted to a full-scale peak. Volume then means what it did for the old generated tones
+    // (1.0 = full scale; the default 0.35 lands between the game's own menu click and fail sound).
+    static readonly Dictionary<Tone, Sound> sounds = new Dictionary<Tone, Sound>
+    {
+        { Tone.Click,   new Sound("event:/ui/click",                -12.7f) },
+        { Tone.Collect, new Sound("event:/ui/pickup",               -23.4f) },
+        { Tone.Start,   new Sound("event:/raft/radar/radar_on",     -23.9f) },
+        { Tone.Scan,    new Sound("event:/raft/radar/radar_bip",    -26.4f) },
+        { Tone.Rare,    new Sound("event:/exploring/shop/new_tier", -12.1f) },
+        { Tone.NetFull, new Sound("event:/ui/fail",                  -7.2f) },
+    };
+    static readonly Sound Fallback = new Sound("event:/ui/click", -12.7f);   // if a game update renames one
+
+    static readonly Dictionary<Tone, EventDescription> events = new Dictionary<Tone, EventDescription>();
+    static readonly Dictionary<Tone, float> gains = new Dictionary<Tone, float>();
+    static readonly HashSet<Tone> warned = new HashSet<Tone>();
     static readonly Dictionary<Tone, float> lastPlayed = new Dictionary<Tone, float>();
     static readonly HashSet<int> announced = new HashSet<int>();
     static readonly HashSet<int> fullNets = new HashSet<int>();
@@ -25,49 +51,46 @@ public static class F44_SoundAlerts
 
     public static void Init()
     {
-        if (host != null) return;
-        host = new GameObject("CollectionQoL_Audio");
-        Object.DontDestroyOnLoad(host);
-        source = host.AddComponent<AudioSource>();
-        source.spatialBlend = 0f;
-        source.playOnAwake = false;
-
-        clips[Tone.Click]   = MakeTone(900f, 0f, 0.05f);
-        clips[Tone.Collect] = MakeTone(660f, 990f, 0.12f);
-        clips[Tone.Start]   = MakeTone(440f, 880f, 0.25f);
-        clips[Tone.Scan]    = MakeTone(300f, 1200f, 0.45f);
-        clips[Tone.Rare]    = MakeTone(1046f, 1318f, 0.30f);
-        clips[Tone.NetFull] = MakeTone(520f, 390f, 0.35f);
+        // Events are looked up on first use instead: the game may still be loading its
+        // FMOD banks when the plugin starts.
+        events.Clear();
+        warned.Clear();
     }
 
-    // Sine sweep from f0 to f1 (f1 = 0 means constant) with a soft fade-out.
-    static AudioClip MakeTone(float f0, float f1, float duration)
+    static bool TryGetEvent(Tone t, out EventDescription desc)
     {
-        const int rate = 44100;
-        int n = Mathf.Max(1, (int)(rate * duration));
-        float[] data = new float[n];
-        float phase = 0f;
-        for (int i = 0; i < n; i++)
+        if (events.TryGetValue(t, out desc) && desc.isValid()) return true;
+        if (!RuntimeManager.IsInitialized) return false;   // never spin up FMOD ourselves
+
+        FMOD.Studio.System studio = RuntimeManager.StudioSystem;
+        Sound s = sounds[t];
+        if (studio.getEvent(s.Path, out desc) != FMOD.RESULT.OK)
         {
-            float k = (float)i / n;
-            float f = f1 > 0f ? Mathf.Lerp(f0, f1, k) : f0;
-            phase += 2f * Mathf.PI * f / rate;
-            float env = Mathf.Min(1f, i / 200f) * (1f - k);
-            data[i] = Mathf.Sin(phase) * env;
+            if (warned.Add(t)) QoLPlugin.Log.LogWarning("Sound alert " + t + ": FMOD event " + s.Path + " not found, using " + Fallback.Path + ".");
+            s = Fallback;
+            if (studio.getEvent(s.Path, out desc) != FMOD.RESULT.OK) return false;
         }
-        AudioClip clip = AudioClip.Create("qol_tone", n, 1, rate, false);
-        clip.SetData(data, 0);
-        return clip;
+        events[t] = desc;
+        gains[t] = s.Gain;
+        return true;
     }
 
     public static void Beep(Tone t)
     {
-        if (!QoLConfig.SoundAlerts || source == null) return;
+        if (!QoLConfig.SoundAlerts) return;
         float last;
         if (lastPlayed.TryGetValue(t, out last) && Time.time - last < 0.25f) return;
         lastPlayed[t] = Time.time;
-        AudioClip c;
-        if (clips.TryGetValue(t, out c) && c != null) source.PlayOneShot(c, QoLConfig.AlertVolume);
+
+        EventDescription desc;
+        EventInstance inst;
+        if (!TryGetEvent(t, out desc) || desc.createInstance(out inst) != FMOD.RESULT.OK) return;
+        // Some of these events are 3D: placing them on the camera (the listener) plays them centred.
+        Camera cam = QoLContext.Cam != null ? QoLContext.Cam : Camera.main;
+        inst.set3DAttributes(RuntimeUtils.To3DAttributes(cam != null ? cam.transform.position : Vector3.zero));
+        inst.setVolume(QoLConfig.AlertVolume * gains[t]);
+        inst.start();
+        inst.release();   // FMOD frees the instance once it finishes playing
     }
 
     public static void Toast(string text)
@@ -119,11 +142,8 @@ public static class F44_SoundAlerts
 
     public static void Cleanup()
     {
-        if (host != null) Object.Destroy(host);
-        host = null;
-        source = null;
-        foreach (AudioClip c in clips.Values) if (c != null) Object.Destroy(c);
-        clips.Clear();
+        // The event descriptions belong to FMOD's loaded banks; nothing to release here.
+        events.Clear();
         announced.Clear();
         fullNets.Clear();
     }

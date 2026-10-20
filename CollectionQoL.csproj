@@ -55,8 +55,11 @@
       <HintPath>$(ManagedDir)\UnityEngine.PhysicsModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <Reference Include="UnityEngine.AudioModule">
-      <HintPath>$(ManagedDir)\UnityEngine.AudioModule.dll</HintPath>
+    <!-- Sound alerts (F44_SoundAlerts.cs) play the game's own FMOD events: Raft has Unity's audio
+         disabled, so AudioSource/AudioClip are silent. FMODUnity.dll also holds the low-level
+         FMOD / FMOD.Studio API wrapper; there is no separate FMOD assembly. -->
+    <Reference Include="FMODUnity">
+      <HintPath>$(ManagedDir)\FMODUnity.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">

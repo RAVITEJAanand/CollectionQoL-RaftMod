@@ -48,10 +48,6 @@ public class QoLRunner : MonoBehaviour
 
     void Start()
     {
-        // Known issue: on Raft 1.1.01 every tone logs "AudioClip.SetData failed; AudioClip contains
-        // no data" here and again in a loaded world, so the alert beeps are silent (the on-screen
-        // toasts still work). Most likely because Raft plays all its audio through FMOD rather than
-        // Unity's own audio; making the beeps audible means moving them onto FMOD.
         F44_SoundAlerts.Init();
 
         // The settings UI polls the menu hotkey in its own Update(), but nothing used to create

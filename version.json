@@ -1,7 +1,7 @@
 {
-  "version": "1.0.2",
+  "version": "1.0.3",
   "name": "Collection QoL",
   "downloadUrl": "https://github.com/RAVITEJAanand/CollectionQoL-RaftMod/releases",
   "raftModdingUrl": "https://raftmodding.com/",
-  "notes": "v1.0.2: Fixed for Raft 1.1.01. F3 opens the settings menu again and every feature runs again (none of them were starting on the current game version). The settings menu's buttons and tabs respond to clicks again (the menu was being drawn underneath the game's own UI, which swallowed every click)."
+  "notes": "v1.0.3: Sound alerts now actually play in Raft 1.1.01. Raft plays its audio through FMOD with Unity's own audio switched off, so the generated alert tones were always silent; the alerts now use the game's own FMOD sounds (UI click, pickup, radar, new tier, fail)."
 }
