@@ -8,9 +8,9 @@ using UnityEngine;
 //  Plays the game's own FMOD sound events (no audio files). Alerts for:
 //  valuable loot entering range, nets becoming full, magnet/scan/collect
 //  feedback. Also owns the small on-screen "toast" message used by other features.
-//  Raft plays all its audio through FMOD with Unity's built-in audio disabled,
-//  so Unity AudioClips/AudioSources stay silent there (every generated tone
-//  logged "AudioClip.SetData failed; AudioClip contains no data").
+//  Raft disables Unity's built-in audio and plays everything through FMOD, so
+//  Unity AudioSource/AudioClip playback is silent there (AudioClip.SetData fails
+//  with "AudioClip contains no data").
 // ============================================================================
 public static class F44_SoundAlerts
 {
@@ -24,9 +24,10 @@ public static class F44_SoundAlerts
     }
 
     // Paths from Raft's MasterBank.strings.bank; all are one-shots (none loop). The second value is
-    // the event's measured peak level: the game mixes its sounds with a lot of headroom, so each one
-    // is lifted to a full-scale peak. Volume then means what it did for the old generated tones
-    // (1.0 = full scale; the default 0.35 lands between the game's own menu click and fail sound).
+    // the event's peak level in dBFS when played at volume 1.0, measured through the game's own FMOD.
+    // The game mixes its sounds with a lot of headroom, so each one is lifted to a full-scale peak:
+    // Volume 1.0 = 0 dBFS, and the default 0.35 peaks around -9 dBFS, between the game's own
+    // menu click (-12.7) and fail sound (-7.2).
     static readonly Dictionary<Tone, Sound> sounds = new Dictionary<Tone, Sound>
     {
         { Tone.Click,   new Sound("event:/ui/click",                -12.7f) },
@@ -36,7 +37,7 @@ public static class F44_SoundAlerts
         { Tone.Rare,    new Sound("event:/exploring/shop/new_tier", -12.1f) },
         { Tone.NetFull, new Sound("event:/ui/fail",                  -7.2f) },
     };
-    static readonly Sound Fallback = new Sound("event:/ui/click", -12.7f);   // if a game update renames one
+    static readonly Sound Fallback = new Sound("event:/ui/click", -12.7f);   // if a game update renames or removes one
 
     static readonly Dictionary<Tone, EventDescription> events = new Dictionary<Tone, EventDescription>();
     static readonly Dictionary<Tone, float> gains = new Dictionary<Tone, float>();
@@ -51,8 +52,8 @@ public static class F44_SoundAlerts
 
     public static void Init()
     {
-        // Events are looked up on first use instead: the game may still be loading its
-        // FMOD banks when the plugin starts.
+        // Nothing is loaded up front: each event is looked up on its first Beep, because the
+        // game may still be loading its FMOD banks when the plugin starts.
         events.Clear();
         warned.Clear();
     }
@@ -60,7 +61,7 @@ public static class F44_SoundAlerts
     static bool TryGetEvent(Tone t, out EventDescription desc)
     {
         if (events.TryGetValue(t, out desc) && desc.isValid()) return true;
-        if (!RuntimeManager.IsInitialized) return false;   // never spin up FMOD ourselves
+        if (!RuntimeManager.IsInitialized) return false;   // reading StudioSystem would start FMOD ourselves
 
         FMOD.Studio.System studio = RuntimeManager.StudioSystem;
         Sound s = sounds[t];
